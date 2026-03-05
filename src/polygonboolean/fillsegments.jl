@@ -80,3 +80,45 @@ struct SegmentEvent
   isstart::Bool
   issubject::Bool
 end
+
+# segment fill bitmasks
+# describe whether segment is filled by subject or clip polygon above or below
+const NONE = 0b0000
+const SUBJTOP = 0b0001
+const SUBJBOTTOM = 0b0010
+const CLIPTOP = 0b0100
+const CLIPBOTTOM = 0b1000
+const BOTHTOP = SUBJTOP | CLIPTOP
+const BOTHBOTTOM = SUBJBOTTOM | CLIPBOTTOM
+
+"""
+    _filled(operation, bits, subjmask, clipmask)
+
+Determine if segment is filled based on operation and fill bits.
+
+Fill rules:
+- `union`: filled if either subject or clip is filled
+- `intersect`: filled if both are filled
+- `setdiff`: filled if subject filled and clip not
+- `symdiff`/`xor`: filled if exactly one is filled
+"""
+function _filled(operation, bits, subjmask, clipmask)
+  sj = (bits & subjmask) != 0
+  cl = (bits & clipmask) != 0
+
+  if operation == intersect
+    sj && cl
+  elseif operation == union
+    sj || cl
+  elseif operation == setdiff
+    sj && !cl
+  elseif operation == symdiff || operation == xor
+    sj ⊻ cl
+  else
+    operation(sj, cl)
+  end
+end
+
+# convenience wrappers for above/below fill checks
+_filledabove(operation, bits) = _filled(operation, bits, SUBJTOP, CLIPTOP)
+_filledbelow(operation, bits) = _filled(operation, bits, SUBJBOTTOM, CLIPBOTTOM)
