@@ -545,6 +545,7 @@ export
   MoreiraMarch,
   hull,
   convexhull,
+  concavehull,
 
   # sampling
   SamplingMethod,
